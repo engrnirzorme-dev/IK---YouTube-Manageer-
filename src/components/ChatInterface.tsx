@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User as UserIcon, Bot, PlayCircle, Sparkles, MessageSquare } from 'lucide-react';
+import { Send, User as UserIcon, Bot, PlayCircle, Sparkles, MessageSquare, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -11,6 +11,9 @@ export function cn(...inputs: ClassValue[]) {
 interface Message {
   role: 'user' | 'model';
   parts: { text: string }[];
+  isError?: boolean;
+  canRetry?: boolean;
+  lastPrompt?: string;
 }
 
 interface ChatInterfaceProps {
@@ -33,6 +36,14 @@ export function ChatInterface({ onPlaylistGenerated, uid, finalPlaylist, externa
     'বাংলা টাইটেল \'পর্ব ০১\' ফরম্যাটে সাজাও'
   ];
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [history, isLoading]);
+
   const sendPrompt = async (promptText: string) => {
     if (!promptText.trim() || isLoading) return;
 
@@ -50,7 +61,7 @@ export function ChatInterface({ onPlaylistGenerated, uid, finalPlaylist, externa
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        let displayError = "দুঃখিত, এআই সার্ভারে সংযোগে ত্রুটি দেখা দিয়েছে। দয়া করে পুনরায় চেষ্টা করুন।";
+        let displayError = "দুঃখিত, এআই সার্ভারে সংযোগে সমস্যা দেখা দিয়েছে।";
         
         try {
           const rawError = errorData.error;
@@ -64,7 +75,7 @@ export function ChatInterface({ onPlaylistGenerated, uid, finalPlaylist, externa
             
             const errMsg = parsed?.error?.message || parsed?.message || String(rawError);
             if (errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("resource_exhausted") || errMsg.includes("429")) {
-              displayError = "⚠️ **Gemini API কোটা সীমা পূর্ণ হয়েছে (429)**\n\nদয়া করে এক মিনিট অপেক্ষা করে পুনরায় মেসেজ পাঠান।";
+              displayError = "⚠️ **Gemini API রেট লিমিট**\n\nসার্ভার ব্যাকআপ মোডে কাজ করছে। দয়া করে পুনরায় অনুরোধ পাঠান।";
             } else {
               displayError = `⚠️ **এপিআই বার্তা:**\n\n${errMsg}`;
             }
@@ -87,7 +98,13 @@ export function ChatInterface({ onPlaylistGenerated, uid, finalPlaylist, externa
 
     } catch (error: any) {
       console.error(error);
-      const errorMessage: Message = { role: 'model', parts: [{ text: error.message || "ত্রুটি দেখা দিয়েছে।" }] };
+      const errorMessage: Message = { 
+        role: 'model', 
+        parts: [{ text: error.message || "ত্রুটি দেখা দিয়েছে।" }],
+        isError: true,
+        canRetry: true,
+        lastPrompt: promptText
+      };
       setHistory(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -162,13 +179,27 @@ export function ChatInterface({ onPlaylistGenerated, uid, finalPlaylist, externa
               "px-4 py-3 rounded-2xl text-xs",
               msg.role === 'user' 
                 ? "bg-[#8083ff] text-[#0d0096] font-semibold rounded-tr-none shadow-md" 
-                : "bg-[#0b1326] text-[#dae2fd] rounded-tl-none border border-[#464554]/30 shadow-sm"
+                : msg.isError 
+                  ? "bg-rose-950/40 text-rose-200 border border-rose-500/30 rounded-tl-none shadow-sm"
+                  : "bg-[#0b1326] text-[#dae2fd] rounded-tl-none border border-[#464554]/30 shadow-sm"
             )}>
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.parts[0].text}</p>
               ) : (
-                <div className="prose prose-invert prose-sm leading-relaxed max-w-none text-xs">
-                  <ReactMarkdown>{msg.parts[0].text}</ReactMarkdown>
+                <div className="space-y-2">
+                  <div className="prose prose-invert prose-sm leading-relaxed max-w-none text-xs">
+                    <ReactMarkdown>{msg.parts[0].text}</ReactMarkdown>
+                  </div>
+                  {msg.canRetry && msg.lastPrompt && (
+                    <button
+                      onClick={() => sendPrompt(msg.lastPrompt!)}
+                      disabled={isLoading}
+                      className="mt-2 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-[#8083ff]/20 hover:bg-[#8083ff]/30 text-[#c0c1ff] text-[11px] font-bold rounded-lg border border-[#8083ff]/40 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw size={12} className={isLoading ? "animate-spin" : ""} />
+                      <span>পুনরায় চেষ্টা করুন</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
