@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, Zap, Upload, CheckCircle2, AlertCircle, Loader2, Sparkles, RefreshCw, FileText, ArrowRight, Play } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Link, Zap, Upload, CheckCircle2, AlertCircle, Loader2, Sparkles, RefreshCw, FileText, ArrowRight, Play, Youtube } from 'lucide-react';
 import { Episode, NavTab, SortMode } from '../types';
 
 interface ExtractorViewProps {
@@ -15,6 +15,20 @@ export const ExtractorView: React.FC<ExtractorViewProps> = ({ onExtractComplete,
   const [minDurationFilter, setMinDurationFilter] = useState<number>(0);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedQueue, setExtractedQueue] = useState<Array<{ id: number; title: string; progress: number; status: 'done' | 'processing' }>>([]);
+
+  const extractVideoId = (url: string) => {
+    const match = url.match(/(?:v=|youtu\.be\/|\/embed\/|\/v\/|\/e\/)([^#&?\s]*).*/);
+    return match && match[1].length >= 10 ? match[1] : null;
+  };
+
+  const previewItems = useMemo(() => {
+    const lines = urlsInput.split('\n').filter(line => line.trim().length > 0);
+    return lines.map((line, idx) => {
+      const videoId = extractVideoId(line) || `mock_${idx}`;
+      return { id: videoId, rawLine: line };
+    }).slice(0, 8); // show max 8 previews
+  }, [urlsInput]);
+
 
   const handleExtract = () => {
     const lines = urlsInput.split('\n').filter(line => line.trim().length > 0);
@@ -103,6 +117,38 @@ export const ExtractorView: React.FC<ExtractorViewProps> = ({ onExtractComplete,
               className="w-full bg-[#060e20] border border-[#464554]/50 rounded-2xl p-4 text-xs font-mono text-[#dae2fd] placeholder-[#c7c4d7]/40 focus:outline-none focus:border-[#8083ff] focus:ring-1 focus:ring-[#8083ff] transition-all resize-none"
             />
           </div>
+
+          {/* Thumbnail Grid Preview */}
+          {previewItems.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center space-x-1.5 text-xs text-[#c7c4d7] font-semibold px-1">
+                <Youtube size={14} className="text-rose-500" />
+                <span>ভিডিও প্রিভিউ ({previewItems.length}টি সনাক্ত হয়েছে)</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {previewItems.map((item, idx) => (
+                  <div key={idx} className="bg-[#0b1326] rounded-xl overflow-hidden border border-[#464554]/30 relative group">
+                    <div className="aspect-video bg-[#171f33] relative">
+                      <img 
+                        src={`https://img.youtube.com/vi/${item.id}/mqdefault.jpg`} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&auto=format&fit=crop&q=80';
+                        }}
+                        alt="Thumbnail preview"
+                        className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#060e20] to-transparent opacity-80" />
+                    </div>
+                    <div className="p-2 absolute bottom-0 left-0 right-0">
+                      <p className="text-[10px] text-[#dae2fd] font-semibold truncate leading-tight">
+                        {item.rawLine.replace(/https?:\/\/[^\s]+/g, '').replace(/[-–—]/g, ' ').trim() || `YouTube Video ${idx + 1}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Extraction Settings */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#0b1326] p-3.5 rounded-2xl border border-[#464554]/30 text-xs">

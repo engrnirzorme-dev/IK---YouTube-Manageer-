@@ -10,6 +10,7 @@ import { SequenceEmptySVG, LeftoverEmptySVG } from './SVGIllustrations';
 import { VideoModal } from './VideoModal';
 import { db } from '../lib/firebase';
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { useToast } from './ToastProvider';
 
 interface WorkbenchTabProps {
   initialEpisodes: Episode[] | null;
@@ -21,6 +22,7 @@ interface WorkbenchTabProps {
 const LOCAL_STORAGE_KEY = 'tv_playlist_workbench_state_v1';
 
 export function WorkbenchTab({ initialEpisodes, uid, onAskAI, onUpdateEpisodes }: WorkbenchTabProps) {
+  const { showToast } = useToast();
   // State
   const [resolvedSequence, setResolvedSequence] = useState<Episode[]>([]);
   const [leftoverBin, setLeftoverBin] = useState<Episode[]>([]);
@@ -52,12 +54,6 @@ export function WorkbenchTab({ initialEpisodes, uid, onAskAI, onUpdateEpisodes }
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('saved');
   const [isSavingFirestore, setIsSavingFirestore] = useState(false);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
 
   // 1. Initial Load & LocalStorage Restoration
   useEffect(() => {
@@ -585,14 +581,6 @@ export function WorkbenchTab({ initialEpisodes, uid, onAskAI, onUpdateEpisodes }
 
   return (
     <div className="bg-[#171f33] border border-[#464554]/30 rounded-3xl shadow-xl overflow-hidden flex flex-col h-[740px] relative">
-      {/* Toast Popup */}
-      {toastMessage && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-[#8083ff] text-[#0d0096] font-bold text-xs px-5 py-2.5 rounded-full shadow-2xl flex items-center space-x-2 border border-white/20 animate-bounce">
-          <CheckCircle2 size={16} />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Top Header & Toolbar */}
       <div className="p-4 border-b border-[#464554]/30 bg-[#131b2e] flex flex-wrap items-center justify-between gap-3">
         {/* Navigation Tabs */}

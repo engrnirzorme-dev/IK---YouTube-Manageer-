@@ -4,6 +4,7 @@ import {
   HardDrive, Share2, Loader2, Sparkles, AlertCircle, Copy, ExternalLink, RefreshCw, XCircle
 } from 'lucide-react';
 import { Episode, NavTab } from '../types';
+import { useToast } from './ToastProvider';
 
 interface PublishViewProps {
   sequence: Episode[];
@@ -21,7 +22,7 @@ export const PublishView: React.FC<PublishViewProps> = ({
   const [privacy, setPrivacy] = useState<'unlisted' | 'public' | 'private'>('unlisted');
   const [saveSnapshotCheck, setSaveSnapshotCheck] = useState(true);
   const [playlistTitle, setPlaylistTitle] = useState('টিভি সিরিয়াল সম্পূর্ণ প্লেলিস্ট - সিজন ০১');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Rendering & Export Progress Simulation
   const [isExporting, setIsExporting] = useState(false);
@@ -52,6 +53,7 @@ export const PublishView: React.FC<PublishViewProps> = ({
     setExportProgress(5);
     setRenderPhase('analyzing');
     setPublishedUrl(null);
+    showToast('প্লেলিস্ট মেটাডেটা যাচাই শুরু হয়েছে...', 'info');
 
     // Phase 1: Analyzing (0% -> 30%)
     setTimeout(() => {
@@ -78,8 +80,7 @@ export const PublishView: React.FC<PublishViewProps> = ({
       if (saveSnapshotCheck) {
         onSaveSnapshot(playlistTitle);
       }
-      setToastMessage('প্লেলিস্ট সফলভাবে রেন্ডার ও পাবলিশ হয়েছে!');
-      setTimeout(() => setToastMessage(null), 4000);
+      showToast('প্লেলিস্ট সফলভাবে রেন্ডার ও পাবলিশ হয়েছে!', 'success');
     }, 3200);
   };
 
@@ -87,8 +88,7 @@ export const PublishView: React.FC<PublishViewProps> = ({
     setIsExporting(false);
     setExportProgress(0);
     setRenderPhase('idle');
-    setToastMessage('রেন্ডারিং প্রক্রিয়া বাতিল করা হয়েছে');
-    setTimeout(() => setToastMessage(null), 2500);
+    showToast('রেন্ডারিং প্রক্রিয়া বাতিল করা হয়েছে', 'error');
   };
 
   const handleExportJSON = () => {
@@ -99,14 +99,14 @@ export const PublishView: React.FC<PublishViewProps> = ({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    setToastMessage('JSON ডাটা ফাইল ডাউনলোড হয়েছে');
-    setTimeout(() => setToastMessage(null), 2500);
+    showToast('JSON ডাটা ফাইল ডাউনলোড হয়েছে', 'success');
   };
 
   const handleCopyShareLink = () => {
     if (publishedUrl) {
       navigator.clipboard.writeText(publishedUrl);
       setCopiedLink(true);
+      showToast('লিঙ্ক কপি করা হয়েছে', 'success');
       setTimeout(() => setCopiedLink(false), 2000);
     }
   };
@@ -128,14 +128,6 @@ export const PublishView: React.FC<PublishViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in relative">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-[#8083ff] text-[#0d0096] font-bold px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-white/20 animate-bounce">
-          <CheckCircle2 size={20} />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="space-y-1">
