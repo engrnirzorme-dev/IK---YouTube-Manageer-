@@ -1,0 +1,6 @@
+{
+  "name": "TV Serial Playlist Organizer",
+  "description": "Organize, fix, and save messy TV serial playlists using Gemini intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
